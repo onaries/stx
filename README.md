@@ -121,6 +121,38 @@ stx events --server safe-101 --since 100
 stx events --server safe-101 --json
 ```
 
+### Shell Completion
+
+Generate and install shell completion for tab completion of commands and flags.
+
+**Bash:**
+
+```bash
+# Add to your ~/.bashrc
+stx completion bash >> ~/.bashrc
+source ~/.bashrc
+
+# Or install system-wide (requires sudo)
+stx completion bash | sudo tee /etc/bash_completion.d/stx > /dev/null
+```
+
+**Zsh:**
+
+```bash
+# Create completions directory if needed
+mkdir -p ~/.zsh/completions
+
+# Generate completion script
+stx completion zsh > ~/.zsh/completions/_stx
+
+# Add to your ~/.zshrc (if not already present)
+echo 'fpath=(~/.zsh/completions $fpath); autoload -Uz compinit && compinit' >> ~/.zshrc
+source ~/.zshrc
+
+# Or install system-wide (requires sudo)
+stx completion zsh | sudo tee /usr/local/share/zsh/site-functions/_stx > /dev/null
+```
+
 ## Development
 
 ```bash

@@ -1,9 +1,15 @@
-import fs from "node:fs";
-import path from "node:path";
+import fs from 'node:fs';
 
-import { defaultIgnore } from "./ignoreTemplates.js";
-import { readMacSyncthingApiKey } from "./macLocal.js";
-import { client, getConfig, getDeviceIdNoAuth, putConfig, restart, setIgnores } from "./syncthingApi.js";
+import { defaultIgnore } from './ignoreTemplates.js';
+import { readMacSyncthingApiKey } from './macLocal.js';
+import {
+  client,
+  getConfig,
+  getDeviceIdNoAuth,
+  putConfig,
+  restart,
+  setIgnores,
+} from './syncthingApi.js';
 
 function upsertDevice(cfg: any, deviceID: string, name: string) {
   cfg.devices ??= [];
@@ -11,9 +17,9 @@ function upsertDevice(cfg: any, deviceID: string, name: string) {
     cfg.devices.push({
       deviceID,
       name,
-      addresses: ["dynamic"],
-      compression: "metadata",
-      introducedBy: "",
+      addresses: ['dynamic'],
+      compression: 'metadata',
+      introducedBy: '',
     });
   }
 }
@@ -50,29 +56,32 @@ export type PairOptions = {
   localPath: string;
   serverPath: string;
   ignoreGit?: boolean;
-  ignoreTemplate?: "nodepython";
+  ignoreTemplate?: 'nodepython';
 };
 
 export async function pairFolder(opts: PairOptions): Promise<void> {
-  const localUrl = opts.localUrl ?? "http://127.0.0.1:8384";
+  const localUrl = opts.localUrl ?? 'http://127.0.0.1:8384';
   const localKey = readMacSyncthingApiKey();
 
   const local = client(localUrl, localKey);
   const server = client(opts.serverUrl, opts.serverApiKey);
 
-  const [localId, serverId] = await Promise.all([getDeviceIdNoAuth(local), getDeviceIdNoAuth(server)]);
+  const [localId, serverId] = await Promise.all([
+    getDeviceIdNoAuth(local),
+    getDeviceIdNoAuth(server),
+  ]);
 
   // Ensure local path exists
   fs.mkdirSync(opts.localPath, { recursive: true });
 
   // 1) Update server config: add mac device + folder(receiveonly)
   const serverCfg = await getConfig(server);
-  upsertDevice(serverCfg, localId, "macbook");
+  upsertDevice(serverCfg, localId, 'macbook');
   upsertFolder(serverCfg, {
     id: opts.folderId,
     label: opts.label,
     path: opts.serverPath,
-    type: "receiveonly",
+    type: 'receiveonly',
     devices: [{ deviceID: localId }],
     rescanIntervalS: 3600,
     fsWatcherEnabled: true,
@@ -81,12 +90,12 @@ export async function pairFolder(opts: PairOptions): Promise<void> {
 
   // 2) Update mac config: add server device + folder(sendreceive)
   const localCfg = await getConfig(local);
-  upsertDevice(localCfg, serverId, "server");
+  upsertDevice(localCfg, serverId, 'server');
   upsertFolder(localCfg, {
     id: opts.folderId,
     label: opts.label,
     path: opts.localPath,
-    type: "sendreceive",
+    type: 'sendreceive',
     devices: [{ deviceID: serverId }],
     rescanIntervalS: 3600,
     fsWatcherEnabled: true,
@@ -94,7 +103,7 @@ export async function pairFolder(opts: PairOptions): Promise<void> {
   await putConfig(local, localCfg);
 
   // 3) Ignores on both
-  const template = opts.ignoreTemplate ?? "nodepython";
+  const template = opts.ignoreTemplate ?? 'nodepython';
   const ignores = defaultIgnore(template, { ignoreGit: !!opts.ignoreGit });
   await setIgnores(server, opts.folderId, ignores);
   await setIgnores(local, opts.folderId, ignores);
@@ -102,7 +111,7 @@ export async function pairFolder(opts: PairOptions): Promise<void> {
   // 4) Restart both (clean apply)
   await Promise.allSettled([restart(server), restart(local)]);
 
-  console.log("OK");
+  console.log('OK');
   console.log(`- folderId: ${opts.folderId}`);
   console.log(`- mac   : ${opts.localPath} (Send&Receive)`);
   console.log(`- server: ${opts.serverPath} (ReceiveOnly)`);

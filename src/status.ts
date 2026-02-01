@@ -4,11 +4,7 @@ import {
   getConnections,
   getFolderStatus,
   getSystemStatus,
-  type ConnectionInfo,
-  type FolderStatus,
-  type SyncthingClient,
-  type SystemStatus,
-} from "./syncthingApi.js";
+} from './syncthingApi.js';
 
 export type DeviceInfo = {
   deviceID: string;
@@ -52,7 +48,7 @@ export type AggregatedStatus = {
 export async function fetchServerStatus(
   serverName: string,
   url: string,
-  apiKey: string,
+  apiKey: string
 ): Promise<ServerStatus> {
   const c = client(url, apiKey);
 
@@ -64,8 +60,7 @@ export async function fetchServerStatus(
     ]);
 
     const folders: FolderInfo[] = [];
-    const folderConfigs: Array<{ id: string; label: string }> =
-      config.folders ?? [];
+    const folderConfigs: Array<{ id: string; label: string }> = config.folders ?? [];
 
     const folderStatuses = await Promise.all(
       folderConfigs.map(async (f) => {
@@ -75,7 +70,7 @@ export async function fetchServerStatus(
         } catch {
           return { id: f.id, label: f.label, status: null };
         }
-      }),
+      })
     );
 
     for (const { id, label, status } of folderStatuses) {
@@ -93,8 +88,7 @@ export async function fetchServerStatus(
     }
 
     const devices: DeviceInfo[] = [];
-    const deviceConfigs: Array<{ deviceID: string; name: string }> =
-      config.devices ?? [];
+    const deviceConfigs: Array<{ deviceID: string; name: string }> = config.devices ?? [];
 
     for (const d of deviceConfigs) {
       if (d.deviceID === systemStatus.myID) continue;
@@ -132,13 +126,11 @@ export async function fetchServerStatus(
 }
 
 export async function fetchAllServersStatus(
-  servers: Record<string, { url: string; apiKey: string }>,
+  servers: Record<string, { url: string; apiKey: string }>
 ): Promise<AggregatedStatus> {
   const entries = Object.entries(servers);
   const results = await Promise.all(
-    entries.map(([name, { url, apiKey }]) =>
-      fetchServerStatus(name, url, apiKey),
-    ),
+    entries.map(([name, { url, apiKey }]) => fetchServerStatus(name, url, apiKey))
   );
   return { servers: results };
 }
@@ -151,7 +143,7 @@ export function formatStatusText(status: AggregatedStatus): string {
 
     if (s.error) {
       lines.push(`  ERROR: ${s.error}`);
-      lines.push("");
+      lines.push('');
       continue;
     }
 
@@ -163,8 +155,8 @@ export function formatStatusText(status: AggregatedStatus): string {
     }
 
     if (s.folders && s.folders.length > 0) {
-      lines.push("");
-      lines.push("  Folders:");
+      lines.push('');
+      lines.push('  Folders:');
       for (const f of s.folders) {
         const globalMB = (f.globalBytes / 1024 / 1024).toFixed(1);
         const localMB = (f.localBytes / 1024 / 1024).toFixed(1);
@@ -177,10 +169,10 @@ export function formatStatusText(status: AggregatedStatus): string {
     }
 
     if (s.devices && s.devices.length > 0) {
-      lines.push("");
-      lines.push("  Devices:");
+      lines.push('');
+      lines.push('  Devices:');
       for (const d of s.devices) {
-        const status = d.connected ? "connected" : "disconnected";
+        const status = d.connected ? 'connected' : 'disconnected';
         lines.push(`    - ${d.name} (${d.deviceID.slice(0, 7)}...): ${status}`);
         if (d.connected && d.clientVersion) {
           lines.push(`      Version: ${d.clientVersion}`);
@@ -188,8 +180,8 @@ export function formatStatusText(status: AggregatedStatus): string {
       }
     }
 
-    lines.push("");
+    lines.push('');
   }
 
-  return lines.join("\n");
+  return lines.join('\n');
 }
