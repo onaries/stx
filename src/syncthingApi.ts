@@ -13,7 +13,12 @@ export function client(baseUrl: string, apiKey?: string): SyncthingClient {
   return { baseUrl: withSlash(baseUrl), apiKey };
 }
 
-async function httpJson<T>(c: SyncthingClient, method: string, path: string, body?: any): Promise<T> {
+async function httpJson<T>(
+  c: SyncthingClient,
+  method: string,
+  path: string,
+  body?: any,
+): Promise<T> {
   const url = `${c.baseUrl}${path}`;
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -42,9 +47,12 @@ async function httpJson<T>(c: SyncthingClient, method: string, path: string, bod
 }
 
 export async function getDeviceIdNoAuth(c: SyncthingClient): Promise<string> {
-  const text = await request(`${c.baseUrl}/rest/noauth/deviceid`, { method: "GET" }).then(async (r) => {
+  const text = await request(`${c.baseUrl}/rest/noauth/deviceid`, {
+    method: "GET",
+  }).then(async (r) => {
     const t = await r.body.text();
-    if (r.statusCode !== 200) throw new Error(`GET /rest/noauth/deviceid -> ${r.statusCode}: ${t}`);
+    if (r.statusCode !== 200)
+      throw new Error(`GET /rest/noauth/deviceid -> ${r.statusCode}: ${t}`);
     return t;
   });
   return text.trim();
@@ -62,9 +70,141 @@ export async function restart(c: SyncthingClient): Promise<void> {
   await httpJson<void>(c, "POST", "/rest/system/restart");
 }
 
-export async function setIgnores(c: SyncthingClient, folderId: string, ignoreLines: string[]): Promise<void> {
-  // POST /rest/db/ignores?folder=<id> with {"ignore":[...]} per docs
-  await httpJson<void>(c, "POST", `/rest/db/ignores?folder=${encodeURIComponent(folderId)}`, {
-    ignore: ignoreLines,
-  });
+export async function setIgnores(
+  c: SyncthingClient,
+  folderId: string,
+  ignoreLines: string[],
+): Promise<void> {
+  await httpJson<void>(
+    c,
+    "POST",
+    `/rest/db/ignores?folder=${encodeURIComponent(folderId)}`,
+    {
+      ignore: ignoreLines,
+    },
+  );
+}
+
+export type SystemStatus = {
+  myID: string;
+  uptime: number;
+  startTime: string;
+  alloc: number;
+  sys: number;
+  goroutines: number;
+  discoveryEnabled: boolean;
+};
+
+export type ConnectionInfo = {
+  address: string;
+  at: string;
+  clientVersion: string;
+  connected: boolean;
+  inBytesTotal: number;
+  outBytesTotal: number;
+  paused: boolean;
+  startedAt: string;
+  type: string;
+  isLocal?: boolean;
+};
+
+export type ConnectionsResponse = {
+  connections: Record<string, ConnectionInfo>;
+  total: {
+    at: string;
+    inBytesTotal: number;
+    outBytesTotal: number;
+  };
+};
+
+export type FolderStatus = {
+  globalBytes: number;
+  globalFiles: number;
+  globalDirectories: number;
+  globalDeleted: number;
+  globalTotalItems: number;
+  localBytes: number;
+  localFiles: number;
+  localDirectories: number;
+  localDeleted: number;
+  localTotalItems: number;
+  needBytes: number;
+  needFiles: number;
+  inSyncBytes: number;
+  inSyncFiles: number;
+  pullErrors: number;
+  state: string;
+  stateChanged: string;
+  version: number;
+  ignorePatterns: boolean;
+};
+
+export type SystemError = {
+  when: string;
+  message: string;
+};
+
+export type ErrorsResponse = {
+  errors: SystemError[] | null;
+};
+
+export type SyncthingEvent = {
+  id: number;
+  globalID: number;
+  time: string;
+  type: string;
+  data: Record<string, unknown>;
+};
+
+export async function getSystemStatus(
+  c: SyncthingClient,
+): Promise<SystemStatus> {
+  return httpJson<SystemStatus>(c, "GET", "/rest/system/status");
+}
+
+export async function getConnections(
+  c: SyncthingClient,
+): Promise<ConnectionsResponse> {
+  return httpJson<ConnectionsResponse>(c, "GET", "/rest/system/connections");
+}
+
+export async function getFolderStatus(
+  c: SyncthingClient,
+  folderId: string,
+): Promise<FolderStatus> {
+  return httpJson<FolderStatus>(
+    c,
+    "GET",
+    `/rest/db/status?folder=${encodeURIComponent(folderId)}`,
+  );
+}
+
+export async function getErrors(c: SyncthingClient): Promise<ErrorsResponse> {
+  return httpJson<ErrorsResponse>(c, "GET", "/rest/system/error");
+}
+
+export async function clearErrors(c: SyncthingClient): Promise<void> {
+  await httpJson<void>(c, "POST", "/rest/system/error/clear");
+}
+
+export type GetEventsOptions = {
+  since?: number;
+  limit?: number;
+  events?: string[];
+  timeout?: number;
+};
+
+export async function getEvents(
+  c: SyncthingClient,
+  opts: GetEventsOptions = {},
+): Promise<SyncthingEvent[]> {
+  const params = new URLSearchParams();
+  if (opts.since !== undefined) params.set("since", String(opts.since));
+  if (opts.limit !== undefined) params.set("limit", String(opts.limit));
+  if (opts.events && opts.events.length > 0)
+    params.set("events", opts.events.join(","));
+  if (opts.timeout !== undefined) params.set("timeout", String(opts.timeout));
+  const query = params.toString();
+  const path = query ? `/rest/events?${query}` : "/rest/events";
+  return httpJson<SyncthingEvent[]>(c, "GET", path);
 }
