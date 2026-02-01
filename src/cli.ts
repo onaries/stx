@@ -61,8 +61,12 @@ program
   .description("Register a Syncthing server (stores URL + API key locally)")
   .argument("<name>", "server name (e.g. safe-101)")
   .argument("<url>", "server Syncthing base URL (e.g. http://100.x.y.z:8384)")
-  .action(async (name: string, url: string) => {
-    const apiKey = await promptHidden("Server API key: ");
+  .option(
+    "--api-key <key>",
+    "server API key (WARNING: visible in shell history; prefer prompt)",
+  )
+  .action(async (name: string, url: string, opts: { apiKey?: string }) => {
+    const apiKey = opts.apiKey ?? (await promptHidden("Server API key: "));
     const cfg = readConfig();
     cfg.servers[name] = { url, apiKey };
     writeConfig(cfg);

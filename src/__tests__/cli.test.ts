@@ -27,6 +27,12 @@ function createTestProgram(): Command {
     .option("--json");
 
   program
+    .command("add-server")
+    .argument("<name>")
+    .argument("<url>")
+    .option("--api-key <key>");
+
+  program
     .command("pair")
     .requiredOption("--server <name>")
     .option("--folder-id <id>")
@@ -43,6 +49,23 @@ function createTestProgram(): Command {
 }
 
 describe("CLI parsing", () => {
+  describe("add-server command", () => {
+    it("parses --api-key option", () => {
+      const program = createTestProgram();
+      program.parse([
+        "node",
+        "stx",
+        "add-server",
+        "safe-101",
+        "http://100.1.2.3:8384",
+        "--api-key",
+        "my-key",
+      ]);
+      const cmd = program.commands.find((c) => c.name() === "add-server");
+      expect(cmd?.opts().apiKey).toBe("my-key");
+    });
+  });
+
   describe("status command", () => {
     it("parses --server option", () => {
       const program = createTestProgram();
