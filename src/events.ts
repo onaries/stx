@@ -1,4 +1,5 @@
 import { client, getEvents, type SyncthingEvent } from "./syncthingApi.js";
+import { redact } from "./redact.js";
 
 export type ServerEvents = {
   server: string;
@@ -28,11 +29,11 @@ export async function fetchServerEvents(
       events: opts.types,
       timeout: 1,
     });
-    return {
+    return redact({
       server: serverName,
       url,
       events,
-    };
+    });
   } catch (err) {
     return {
       server: serverName,
